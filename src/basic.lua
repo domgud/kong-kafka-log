@@ -12,6 +12,7 @@ local tostring = tostring
 local tonumber = tonumber
 local ceil = math.ceil
 local floor = math.floor
+local uuid = uuid;
 
 function ipStrToDigits(ipstr)
   if ipstr then
@@ -116,7 +117,7 @@ function _M.serialize(ngx, kong, conf)
       reason = kong.ctx.shared.errmsg,
       logClass = (((ngx.status == "401" or ngx.status == "403") and ctx.KONG_WAITING_TIME == nil) and "SECURITY_FAILURE" or "SECURITY_SUCCESS"),
       application = {
-          askId = "1",
+          askId = uuid(),
           name = conf.app_name
       },
       device = {
@@ -141,7 +142,7 @@ function _M.serialize(ngx, kong, conf)
       request = {
           request = temp_request,
           method = kong.request.get_method(),
-          Optum_CID_Ext = req.get_headers(1)["optum-cid-ext"],
+          status = var.status,
           ["in"] = tonumber(var.request_length), --in is reserved word and must wrap it like so
           out = tonumber(var.bytes_sent)
       }
