@@ -1,15 +1,15 @@
 package = "kong-kafka-log"
-version = "1.0-1"
+version = "1.1-1"
 source = {
-   url = "git+https://github.com/Optum/kong-kafka-log.git"
+   url = "https://github.com/domgud/kong-kafka-log.git"
 }
 description = {
    summary = "Kong plugin designed to log API transactions to Kafka",
    detailed = [[
     Kong provides many great logging tools out of the box, this is a modified version of the Kong HTTP logging plugin that has been refactored and tailored to work with Kafka.
-    Please see here for more info: https://github.com/Optum/kong-kafka-log
+    Please see here for more info: https://github.com/domgud/kong-kafka-log
    ]],
-   homepage = "https://github.com/Optum/kong-kafka-log",
+   homepage = "https://github.com/domgud/kong-kafka-log",
    license = "Apache 2.0"
 }
 dependencies = {}

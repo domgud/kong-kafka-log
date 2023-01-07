@@ -113,21 +113,19 @@ function _M.serialize(ngx, kong, conf)
       name = serviceName,
       eventClass = tostring(ngx.status),
       receivedTime = req.start_time() * 1000,
-      msg = "STARGATE_PROXY_TX",
       reason = kong.ctx.shared.errmsg,
       logClass = (((ngx.status == "401" or ngx.status == "403") and ctx.KONG_WAITING_TIME == nil) and "SECURITY_FAILURE" or "SECURITY_SUCCESS"),
       application = {
-          askId = conf.ask_id,
+          askId = "1",
           name = conf.app_name
       },
       device = {
-          vendor = "Optum",
           product = "kong-kafka-log",
           hostname = var.hostname,
-          ip4 = ipStrToDigits(var.server_addr)
+          ip4 = var.server_addr
       },
       sourceHost = {
-          ip4 = ipStrToDigits(var.remote_addr),
+          ip4 = var.remote_addr,
           port = tonumber(consumerFacingPort)
       },
       sourceUser = {
@@ -136,7 +134,7 @@ function _M.serialize(ngx, kong, conf)
       },
       destHost = {
           hostname = DestHostName,
-          ipv4 = ipStrToDigits(BackendIp),
+          ipv4 = BackendIp,
           port = BackendPort,
           path = UpstreamPathOnly
       },
