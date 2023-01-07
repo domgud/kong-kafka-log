@@ -12,7 +12,9 @@ local tostring = tostring
 local tonumber = tonumber
 local ceil = math.ceil
 local floor = math.floor
-local uuid = uuid;
+local socket = require("socket")
+local uuid = require("uuid")
+uuid.seed()
 
 function ipStrToDigits(ipstr)
   if ipstr then
