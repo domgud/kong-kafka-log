@@ -16,55 +16,6 @@ local socket = require("socket")
 local uuid = require("uuid")
 uuid.seed()
 
-function ipStrToDigits(ipstr)
-  if ipstr then
-    local ret=0
-    for d in gmatch(ipstr, "%d+") do
-      ret = ret*256 + d
-    end
-    return ret
-  else
-    return nil
-  end
-end
-
-function returnToken(token_header)
-  if token_header then
-    if type(token_header) == "table" then
-      token_header = token_header[1]
-    end
-    local iterator, iter_err = re_gmatch(token_header, "\\s*[Bb]earer\\s+(.+)")
-    if not iterator then
-      kong.log.err(iter_err)
-      return nil
-    end
-
-    local m, err = iterator()
-    if err then
-      kong.log.err(err)
-      return nil
-    end
-
-    if m and #m > 0 then
-      return m[1]
-    end
-  else
-    return nil
-  end
-end
-
--- @return SHA-256 hash of the request token
-local function tokenHash(token)
-  if token then
-    local sha256 = resty_sha256:new()
-    sha256:update(token)
-    token = sha256:final()
-    return str.to_hex(token)
-  else
-    return nil
-  end
-end
-
 function _M.serialize(ngx, kong, conf)
   local ctx = ngx.ctx
   local var = ngx.var
@@ -72,12 +23,6 @@ function _M.serialize(ngx, kong, conf)
 
   if not kong then
     kong = gkong
-  end
-
-  -- Handles Nil Users
-  local ConsumerUsername
-  if ctx.authenticated_consumer ~= nil then
-    ConsumerUsername = ctx.authenticated_consumer.username
   end
 
   local PathOnly
@@ -106,36 +51,26 @@ function _M.serialize(ngx, kong, conf)
         serviceName = ctx.service.name
   end
 
-  local consumerFacingPort = ((var.server_port == "8443" or var.server_port == "8000") and "443" or "8443")
 
-  local temp_request = "https://" .. var.host .. ":" .. consumerFacingPort
+  local temp_request = "http://" .. var.host
   if PathOnly then
          temp_request = temp_request .. PathOnly
   end
   return {
-      name = serviceName,
-      eventClass = tostring(ngx.status),
-      receivedTime = req.start_time() * 1000,
-      reason = kong.ctx.shared.errmsg,
-      logClass = (((ngx.status == "401" or ngx.status == "403") and ctx.KONG_WAITING_TIME == nil) and "SECURITY_FAILURE" or "SECURITY_SUCCESS"),
-      application = {
-          askId = uuid(),
-          name = conf.app_name
+
+      metadata = {
+        name = serviceName,
+        created_at = req.start_time() * 1000,
+        id = uuid()
       },
-      device = {
-          product = "kong-kafka-log",
+      kong_host = {
           hostname = var.hostname,
           ip4 = var.server_addr
       },
-      sourceHost = {
-          ip4 = var.remote_addr,
-          port = tonumber(consumerFacingPort)
+      client_host = {
+          ip4 = var.remote_addr
       },
-      sourceUser = {
-          name = ConsumerUsername,
-          tokenHash = tokenHash(returnToken(req.get_headers()["authorization"]))
-      },
-      destHost = {
+      destination_host = {
           hostname = DestHostName,
           ipv4 = BackendIp,
           port = BackendPort,
@@ -145,8 +80,9 @@ function _M.serialize(ngx, kong, conf)
           request = temp_request,
           method = kong.request.get_method(),
           status = var.status,
-          ["in"] = tonumber(var.request_length), --in is reserved word and must wrap it like so
-          out = tonumber(var.bytes_sent)
+          agent = var.http_user_agent,
+          request_length = tonumber(var.request_length),
+          bytes_sent = tonumber(var.bytes_sent)
       }
   }
 end
