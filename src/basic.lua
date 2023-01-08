@@ -14,13 +14,40 @@ local ceil = math.ceil
 local floor = math.floor
 local socket = require("socket")
 local uuid = require("uuid")
+local json = require('cjson')
 uuid.seed()
+
+local function obfuscateJson(line)
+  local t = json.decode(line) 
+  local result = {}
+  for k, v in pairs(t) do
+      if k == "password"
+      then
+          result[k] = "<hidden>"
+      else
+          result[k] = v
+   end
+  end
+  return result
+end
+
+local function obfuscatePayloadOrError()
+  local requestBodyJson = ngx.req.get_body_data()
+  if requestBodyJson == nil then
+      return {["info"]="Payload empty"}
+  end
+  local status, returnValue = pcall(obfuscateJson, requestBodyJson)
+      if status then
+          return returnValue
+      else
+          return {["error"]="Error while deserializing body"}
+      end
+end
 
 function _M.serialize(ngx, kong, conf)
   local ctx = ngx.ctx
   local var = ngx.var
   local req = ngx.req
-
   if not kong then
     kong = gkong
   end
@@ -56,8 +83,14 @@ function _M.serialize(ngx, kong, conf)
   if PathOnly then
          temp_request = temp_request .. PathOnly
   end
+  local Method = kong.request.get_method()
+  local Payload
+  if Method == "POST" or Method == "PUT" or Method == "PATCH" then
+    Payload = obfuscatePayloadOrError()
+  end
   return {
 
+      payload = Payload,
       metadata = {
         name = serviceName,
         created_at = req.start_time() * 1000,
@@ -78,7 +111,7 @@ function _M.serialize(ngx, kong, conf)
       },
       request = {
           request = temp_request,
-          method = kong.request.get_method(),
+          method = Method,
           status = var.status,
           agent = var.http_user_agent,
           request_length = tonumber(var.request_length),
