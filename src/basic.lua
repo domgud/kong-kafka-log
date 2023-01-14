@@ -17,11 +17,23 @@ local uuid = require("uuid")
 local json = require('cjson')
 uuid.seed()
 
-local function obfuscateJson(line)
+local json = require('cjson')
+
+local function has_value (tab, val)
+    for index, value in ipairs(tab) do
+        if value == val then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function obfuscateJson(line, obfuscated_keys)
   local t = json.decode(line) 
   local result = {}
   for k, v in pairs(t) do
-      if k == "password"
+      if has_value(obfuscated_keys, k)
       then
           result[k] = "<hidden>"
       else
@@ -31,12 +43,12 @@ local function obfuscateJson(line)
   return result
 end
 
-local function obfuscatePayloadOrError()
+local function obfuscatePayloadOrError(obfuscated_keys)
   local requestBodyJson = ngx.req.get_body_data()
   if requestBodyJson == nil then
       return {["info"]="Payload empty"}
   end
-  local status, returnValue = pcall(obfuscateJson, requestBodyJson)
+  local status, returnValue = pcall(obfuscateJson, requestBodyJson, obfuscated_keys)
       if status then
           return returnValue
       else
@@ -86,7 +98,7 @@ function _M.serialize(ngx, kong, conf)
   local Method = kong.request.get_method()
   local Payload
   if Method == "POST" or Method == "PUT" or Method == "PATCH" then
-    Payload = obfuscatePayloadOrError()
+    Payload = obfuscatePayloadOrError(conf.obfuscated_keys)
   end
   return {
 
@@ -94,7 +106,7 @@ function _M.serialize(ngx, kong, conf)
       metadata = {
         name = serviceName,
         created_at = req.start_time() * 1000,
-        id = uuid()
+        id = uuid(),
       },
       kong_host = {
           hostname = var.hostname,

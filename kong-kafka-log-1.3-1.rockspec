@@ -1,5 +1,5 @@
 package = "kong-kafka-log"
-version = "1.2-1"
+version = "1.3-1"
 source = {
    url = "https://github.com/domgud/kong-kafka-log.git"
 }

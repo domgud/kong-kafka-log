@@ -32,8 +32,7 @@ return {
                 type = "string"
           }, }, },
           { topic = { type = "string", required = true }, },
-          { ask_id = { type = "string", required = true }, },
-          { app_name = { type = "string", required = true }, },
+          { obfuscated_keys = { type = "array", elements = { type = "string"}, default = {"password"} }, },
           { timeout = { type = "number", default = 10000 }, },
           { keepalive = { type = "number", default = 60000 }, },
           { ssl = { type = "boolean", default = false }, },
