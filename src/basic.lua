@@ -30,23 +30,35 @@ local function has_value (tab, val)
 end
 
 local function obfuscateJson(line, obfuscated_keys)
-  local t = json.decode(line) 
-  local result = {}
-  for k, v in pairs(t) do
-      if has_value(obfuscated_keys, k)
-      then
-          result[k] = "<hidden>"
-      else
-          result[k] = v
-   end
+    local t = json.decode(line) 
+    local result = {}
+    local isArray = false
+    for k, v in pairs(t) do
+      if type(k) == "number" then
+        isArray = true
+      end
+        if has_value(obfuscated_keys, k)then
+            result[k] = "<hidden>"
+        else
+          if type(v) == "table" then
+              result[k] = json.encode(v)
+          else
+              result[k] = v
+          end
+        end
+    end
+    -- this is mainly needed because if the request body is an array instead of a map (aka []) later on we get
+    -- deserialization failures in downstream
+    if isArray == true then
+        return nil
+    end
+    return result
   end
-  return result
-end
 
 local function obfuscatePayloadOrError(obfuscated_keys)
   local requestBodyJson = ngx.req.get_body_data()
   if requestBodyJson == nil then
-      return {["info"]="Payload empty"}
+      return nil
   end
   local status, returnValue = pcall(obfuscateJson, requestBodyJson, obfuscated_keys)
       if status then
@@ -96,7 +108,6 @@ function _M.serialize(ngx, kong, conf)
          temp_request = temp_request .. PathOnly
   end
   local Method = kong.request.get_method()
-  local Payload
   if Method == "POST" or Method == "PUT" or Method == "PATCH" then
     Payload = obfuscatePayloadOrError(conf.obfuscated_keys)
   end
