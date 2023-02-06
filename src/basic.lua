@@ -137,6 +137,7 @@ function _M.serialize(ngx, kong, conf)
           method = Method,
           status = var.status,
           agent = var.http_user_agent,
+          upstream_time = ngx.resp.get_headers()["x-kong-upstream-latency"],
           request_length = tonumber(var.request_length),
           bytes_sent = tonumber(var.bytes_sent)
       }
